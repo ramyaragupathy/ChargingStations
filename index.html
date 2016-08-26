@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8' />
+    <title></title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.22.1/mapbox-gl.js'></script>
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.22.1/mapbox-gl.css' rel='stylesheet' />
+    <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
+     <link href='https://www.mapbox.com/base/latest/base.css' rel='stylesheet' />
+    <style>
+        body { margin:0; padding:0; }
+        #map { position:absolute; top:0; bottom:0; width:100%; }
+        .loading
+ {
+    cursor:wait;
+ }
+    </style>
+</head>
+<body>
+
+<div id='map'></div>
+<div id="loading-splash" class="loading"></div>
+
+<script>
+mapboxgl.accessToken = 'pk.eyJ1IjoicmFteWFyYWd1cGF0aHkiLCJhIjoiOHRoa2JJTSJ9.6Y38XMOQL80LZyrUAjXgIg';
+var map = new mapboxgl.Map({
+    container: 'map', // container id
+    style: 'mapbox://styles/mapbox/dark-v9', 
+    center: [-100.980, 40.774], // starting position
+    zoom: 4,
+    hash:true
+});
+
+
+
+
+
+var url = 'https://developer.nrel.gov/api/alt-fuel-stations/v1.json?&api_key=eZL76gYomIZX6Ulx0f7cTxzy6nZIo5HFYpB1BpbZ&format=JSON';
+var geojson = {
+    type: 'FeatureCollection',
+    features: []
+  };
+
+
+map.on('load', function () {
+  console.log('inside map load function');
+  $("#loading").bind("ajaxStart", function(){
+    $('map').attr("style", "visibility: visible")
+}).bind("ajaxStop", function(){
+    $('map').attr("style", "visibility: hidden")
+});
+  mapboxgl.util.getJSON(url, function(err, data) {
+
+    // Remove loading indicator
+    var elem = document.getElementById("loading-splash");
+    elem.parentNode.removeChild(elem);
+
+    console.log(data);
+  // From the requested source we'll need to do a bit of
+  // data processing to get it into a format for our needs.
+  // The finished output looks like GeoJSON
+  // console.log(JSON.stringify(data));
+
+  console.log(data.total_results);
+  console.log(data.fuel_stations.length);
+  data.fuel_stations.forEach(function(item){
+    var newFeature ={
+    "type": "Feature",
+    "properties": {},
+    "geometry": {
+        "coordinates": [],
+        "type": "Point"
+      }
+  };
+    newFeature.properties = item;
+    newFeature.geometry.coordinates[0]= item.longitude;
+    newFeature.geometry.coordinates[1] =item.latitude;
+    geojson.features.push(newFeature);
+  });
+  map.addSource('data', {
+  type: 'geojson',
+  data: geojson
+  });
+  map.addLayer({
+        "id": "data",
+        "type": "circle",
+        "source": "data",
+      
+        "paint": {
+            "circle-color": 'green',
+            "circle-radius": 10,
+            "circle-blur": 2
+        }
+  });
+  map.addLayer({
+        "id": "niko",
+        "type": "circle",
+        "source": "data",
+      
+        "paint": {
+            "circle-color": 'red',
+            "circle-radius": 10,
+            "circle-blur": 2
+        },
+       "filter": [
+                ">",
+                "ev_dc_fast_num",
+                "0"
+                
+            ]
+  });
+  // console.log(JSON.stringify(geojson));
+});
+
+
+
+});
+// map.on('loaded', function(){
+
+//   data.setData(geojson);
+
+// });
+</script>
+
+</body>
+</html>
+
